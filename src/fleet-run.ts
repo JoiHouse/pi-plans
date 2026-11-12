@@ -8,6 +8,7 @@
 import type { ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { fleet, type FleetGroup, type FleetRole } from "./agent-fleet.ts";
 import { fleetUi, fleetUiHost } from "./fleet-ui.ts";
+import { setFleetGroupOwner } from "./percho-bridge.ts";
 import type { UiLanguage } from "./ui-language.ts";
 import type { SubagentResult } from "./subagent.ts";
 
@@ -46,6 +47,7 @@ export function openFleetGroup(ctx: ExtensionContext | ExtensionCommandContext, 
 		lanes: spec.lanes.map((lane) => ({ id: lane.id, label: lane.label, abort: () => controllers.get(lane.id)?.abort() })),
 	});
 	fleetUi.attach(fleetUiHost(ctx), { lang: spec.lang, onUnhandledKey: spec.onUnhandledKey });
+	setFleetGroupOwner(spec.groupId, sessionIdOf(ctx));
 
 	return {
 		group,
@@ -62,4 +64,13 @@ export function openFleetGroup(ctx: ExtensionContext | ExtensionCommandContext, 
 			}
 		},
 	};
+}
+
+function sessionIdOf(ctx: ExtensionContext | ExtensionCommandContext): string | undefined {
+	try {
+		const id = (ctx.sessionManager as { getSessionId?: () => unknown } | undefined)?.getSessionId?.();
+		return typeof id === "string" ? id : undefined;
+	} catch {
+		return undefined;
+	}
 }

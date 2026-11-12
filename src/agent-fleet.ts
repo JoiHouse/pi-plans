@@ -39,6 +39,8 @@ export interface FleetEntry {
 	contextPercent?: number;
 	/** Stops just this agent; absent when the spawner cannot stop one lane. */
 	abort?: () => void;
+	/** The agent's live SDK session (opaque; forwarded to GUI hosts such as Percho). */
+	session?: unknown;
 }
 
 export interface FleetGroupSpec {
@@ -102,6 +104,12 @@ export class FleetGroup {
 	update(laneId: string, event: SubagentProgressEvent): void {
 		const entry = this.entry(laneId);
 		if (!entry || isTerminal(entry)) return;
+		if (event.type === "session") {
+			// Identity only: does not start the clock or change the lane state.
+			entry.session = event.session;
+			this.fleet.notify();
+			return;
+		}
 		// The first event of a queued lane starts its clock; events that arrive
 		// while a worker is idle (a late "exited") do not.
 		beginWork(entry);

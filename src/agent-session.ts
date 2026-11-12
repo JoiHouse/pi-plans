@@ -13,6 +13,8 @@
  *    on the same live session; the caller disposes it.
  */
 
+import { join } from "node:path";
+import { perchoEnabled, projectSlug } from "./percho-bridge.ts";
 import {
 	finalOutput,
 	messageText,
@@ -142,7 +144,10 @@ async function defaultFactory(options: Record<string, unknown>): Promise<{ sessi
 		agentDir,
 		settingsManager,
 		resourceLoader,
-		sessionManager: sdk.SessionManager.inMemory(cwd),
+		// Percho can only open sessions that exist on disk under its subagent root.
+		sessionManager: perchoEnabled()
+			? sdk.SessionManager.create(cwd, join(agentDir, "sessions-subagents", projectSlug(cwd)))
+			: sdk.SessionManager.inMemory(cwd),
 	} as never);
 	return { session: created.session as unknown as SessionLike };
 }
@@ -324,6 +329,7 @@ export async function startAgentSession(options: AgentRunOptions): Promise<{ han
 	};
 
 	options.onSession?.(handle);
+	emit(options, { type: "session", session });
 	return { handle };
 }
 

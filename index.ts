@@ -103,6 +103,7 @@ import { hugeRunSummary, registerPlansTool } from "./tools/plans.ts";
 import { registerRefineTool } from "./tools/refine.ts";
 import { registerAnalyzeRefsTool } from "./tools/analyze-refs.ts";
 import { messaging, setMessagingApi } from "./src/messaging.ts";
+import { registerPerchoBus } from "./src/percho-bridge.ts";
 import { stalenessLine } from "./src/staleness.ts";
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -801,6 +802,7 @@ export default function piPlansExtension(pi: ExtensionAPI): void {
 		);
 	});
 	pi.on("session_start", async (_event, ctx) => {
+		registerPerchoBus(ctx.sessionManager.getSessionId(), pi.events);
 		await restoreFromSession(ctx, ctx.sessionManager.getBranch() as unknown as Parameters<typeof restoreFromSession>[1]);
 		restoreAutoCompleteFromSession(ctx, ctx.sessionManager.getEntries() as unknown as Parameters<typeof restoreAutoCompleteFromSession>[1]);
 		restoreRunBindingFromSession(

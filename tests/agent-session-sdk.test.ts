@@ -134,6 +134,67 @@ describe("agent sessions on the real SDK", () => {
 		handle.dispose();
 	});
 
+	it("persists sessions under <agentDir>/sessions-subagents and reports the live session when Percho hosts it", async () => {
+		const previousFlag = process.env.PERCHO_SUBAGENT_RUNS;
+		process.env.PERCHO_SUBAGENT_RUNS = "1";
+		try {
+			const { registry } = await scriptedRegistry(() => ({ text: "persisted answer" }));
+			const sessions: Array<{ sessionId?: string; sessionFile?: string }> = [];
+			const started = await startAgentSession({
+				systemPrompt: "p",
+				task: "",
+				cwd: root,
+				host: { modelRegistry: registry },
+				model: "local-sdk/fixture",
+				thinkingLevel: "off",
+				onProgress: (event) => {
+					if (event.type === "session") sessions.push(event.session as { sessionId?: string; sessionFile?: string });
+				},
+			});
+			assert.ok("handle" in started, "error" in started ? started.error : "");
+			const { handle } = started as Extract<typeof started, { handle: unknown }>;
+			assert.equal(sessions.length, 1, "the live session is announced exactly once");
+			const file = sessions[0]!.sessionFile;
+			assert.equal(typeof sessions[0]!.sessionId, "string");
+			assert.ok(file && file.startsWith(path.join(process.env.PI_CODING_AGENT_DIR!, "sessions-subagents") + path.sep), String(file));
+			const result = await handle.run("Task: persist me");
+			assert.equal(result.ok, true, result.errorMessage);
+			assert.ok(fs.existsSync(file!), "the transcript is on disk after the run");
+			assert.match(fs.readFileSync(file!, "utf8"), /persisted answer/);
+			handle.dispose();
+		} finally {
+			if (previousFlag === undefined) delete process.env.PERCHO_SUBAGENT_RUNS;
+			else process.env.PERCHO_SUBAGENT_RUNS = previousFlag;
+		}
+	});
+
+	it("keeps sessions in memory without the Percho flag", async () => {
+		delete process.env.PERCHO_SUBAGENT_RUNS;
+		const subagentRoot = path.join(process.env.PI_CODING_AGENT_DIR!, "sessions-subagents");
+		const countFiles = (): number =>
+			fs.existsSync(subagentRoot) ? fs.readdirSync(subagentRoot, { recursive: true }).length : 0;
+		const before = countFiles();
+		const { registry } = await scriptedRegistry(() => ({ text: "x" }));
+		const sessions: Array<{ sessionFile?: string }> = [];
+		const started = await startAgentSession({
+			systemPrompt: "p",
+			task: "",
+			cwd: root,
+			host: { modelRegistry: registry },
+			model: "local-sdk/fixture",
+			thinkingLevel: "off",
+			onProgress: (event) => {
+				if (event.type === "session") sessions.push(event.session as { sessionFile?: string });
+			},
+		});
+		assert.ok("handle" in started);
+		const { handle } = started as Extract<typeof started, { handle: unknown }>;
+		await handle.run("Task: memory");
+		assert.equal(sessions[0]!.sessionFile, undefined);
+		assert.equal(countFiles(), before, "nothing is written to disk");
+		handle.dispose();
+	});
+
 	it("fails cleanly for a model that is not in the registry", async () => {
 		const { registry } = await scriptedRegistry(() => ({ text: "x" }));
 		const started = await startAgentSession({ systemPrompt: "p", task: "", cwd: root, host: { modelRegistry: registry }, model: "nope/missing" });

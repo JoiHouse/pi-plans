@@ -24,7 +24,9 @@ export type SubagentProgressEvent =
 	  }
 	| { type: "stderr"; text: string }
 	/** Cumulative token usage of the session so far (display only). */
-	| { type: "usage"; input: number; output: number; contextPercent?: number };
+	| { type: "usage"; input: number; output: number; contextPercent?: number }
+	/** The live SDK session backing this agent, emitted once after creation (display only). */
+	| { type: "session"; session: unknown };
 
 export interface SubagentOptions {
 	systemPrompt: string;
