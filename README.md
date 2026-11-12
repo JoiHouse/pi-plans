@@ -24,6 +24,14 @@
 
 ---
 
+> [!NOTE]
+> **Unofficial fork of [MaxInGaussian/pi-plans](https://github.com/MaxInGaussian/pi-plans) (branch `local-gui-bridge`, based on 0.9.1)** that makes delegated workers visible in the [Percho desktop GUI fork](https://github.com/JoiHouse/percho/tree/local-gui-bridge).
+> Workers show their status, a live read-only transcript and an active count on the sidebar.
+>
+> - Only active when the host sets `PERCHO_SUBAGENT_RUNS=1` (the Percho fork does). Then agent sessions are persisted under `<agentDir>/sessions-subagents/<project>/` and every fleet lane is broadcast on `pi.events` (`percho:subagent-runs`, v1) with its live session. In Pi CLI or the official Percho nothing changes.
+> - **Install in Percho**: quit Percho, edit `~/.percho/agent/settings.json`, replace `"npm:pi-plans"` in `packages` with `"git:github.com/JoiHouse/pi-plans@local-gui-bridge"` (or add it), then reopen Percho.
+> - The GUI part requires the Percho fork: [download](https://github.com/JoiHouse/percho/releases/latest).
+
 ## Highlights
 
 - **Nothing is writable before you approve.** Planning, questions, and refinement run read-only: `edit`/`write` are blocked outside planning artifacts until the merged, never-auto-completed handoff lifts the guard. → [Safety model](#safety-model)
